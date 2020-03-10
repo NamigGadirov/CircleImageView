@@ -42,6 +42,7 @@ import android.widget.ImageView;
 import androidx.annotation.ColorInt;
 import androidx.annotation.ColorRes;
 import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 @SuppressWarnings("UnusedDeclaration")
@@ -71,6 +72,7 @@ public class CircleImageView extends ImageView {
 
     private Bitmap mBitmap;
     private BitmapShader mBitmapShader;
+    private Canvas mBitmapCanvas;
     private int mBitmapWidth;
     private int mBitmapHeight;
 
@@ -81,6 +83,7 @@ public class CircleImageView extends ImageView {
 
     private boolean mReady;
     private boolean mSetupPending;
+    private boolean mDrawableDirty;
     private boolean mBorderOverlay;
     private boolean mDisableCircularTransformation;
 
@@ -142,6 +145,7 @@ public class CircleImageView extends ImageView {
         }
     }
 
+    @SuppressLint("CanvasSize")
     @Override
     protected void onDraw(Canvas canvas) {
         if (mDisableCircularTransformation) {
@@ -151,6 +155,13 @@ public class CircleImageView extends ImageView {
 
         if (mBitmap == null) {
             return;
+        }
+
+        if (mDrawableDirty && mBitmapCanvas != null) {
+            mDrawableDirty = false;
+            Drawable drawable = getDrawable();
+            drawable.setBounds(0, 0, mBitmapCanvas.getWidth(), mBitmapCanvas.getHeight());
+            drawable.draw(mBitmapCanvas);
         }
 
         if (mCircleBackgroundColor != Color.TRANSPARENT) {
@@ -166,6 +177,12 @@ public class CircleImageView extends ImageView {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         setup();
+    }
+
+    @Override
+    public void invalidateDrawable(@NonNull Drawable dr) {
+        super.invalidateDrawable(dr);
+        mDrawableDirty = true;
     }
 
     @Override
@@ -334,6 +351,13 @@ public class CircleImageView extends ImageView {
         } else {
             mBitmap = getBitmapFromDrawable(getDrawable());
         }
+
+        if (mBitmap != null && mBitmap.isMutable()) {
+            mBitmapCanvas = new Canvas(mBitmap);
+        } else {
+            mBitmapCanvas = null;
+        }
+
         setup();
     }
 
